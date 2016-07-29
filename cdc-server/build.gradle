@@ -1,0 +1,73 @@
+buildscript {
+	ext {
+		springBootVersion = '1.4.0.RC1'
+	}
+	repositories {
+		mavenCentral()
+		maven { url "https://repo.spring.io/snapshot" }
+		maven { url "https://repo.spring.io/milestone" }
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath "org.springframework.cloud:spring-cloud-contract-gradle-plugin:1.0.0.M1"
+	}
+}
+
+apply plugin: 'groovy'
+apply plugin: 'spring-boot'
+apply plugin: 'spring-cloud-contract'
+apply plugin: 'maven-publish'
+
+group = "com.example"
+version = '0.0.1-SNAPSHOT'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+	maven { url "https://repo.spring.io/snapshot" }
+	maven { url "https://repo.spring.io/milestone" }
+}
+
+
+dependencies {
+	compile('org.springframework.boot:spring-boot-starter-web')
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	testCompile('org.springframework.cloud:spring-cloud-starter-contract-verifier')
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-contract-dependencies:1.0.0.M1"
+	}
+}
+
+ext {
+	stubsOutputDirRoot = file("${project.buildDir}/stubs/")
+}
+
+contracts {
+	baseClassForTests = 'com.example.BaseVerifierTest'
+	stubsOutputDir = stubsOutputDirRoot
+}
+
+task stubsJar(type: Jar, dependsOn: "generateWireMockClientStubs") {
+	baseName = "${project.name}"
+	classifier = "stubs"
+	from stubsOutputDirRoot
+}
+
+artifacts {
+	archives stubsJar
+}
+
+publishing {
+	publications {
+		stubs(MavenPublication) {
+			groupId "${group}"
+			artifactId "${project.name}"
+			artifact stubsJar
+		}
+	}
+}
